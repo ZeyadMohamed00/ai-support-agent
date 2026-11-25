@@ -1,0 +1,6 @@
+{
+ "A1001": {"customer": "sara@example.com", "status": "delivered", "delivered_days_ago": 5, "total": 49.90, "items": ["Wireless Mouse"]},
+ "A1002": {"customer": "sara@example.com", "status": "shipped", "eta_days": 2, "total": 120.00, "items": ["Mechanical Keyboard"]},
+ "A1003": {"customer": "omar@example.com", "status": "delivered", "delivered_days_ago": 45, "total": 15.00, "items": ["USB Cable"]},
+ "A1004": {"customer": "omar@example.com", "status": "processing", "total": 300.00, "items": ["Monitor"]}
+}

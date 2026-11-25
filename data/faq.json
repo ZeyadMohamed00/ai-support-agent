@@ -1,0 +1,7 @@
+[
+ {"q": "How long does shipping take?", "a": "Standard shipping takes 3 to 5 business days. Express takes 1 to 2."},
+ {"q": "What is the refund policy?", "a": "Delivered items can be refunded within 30 days of delivery. Orders over 200 dollars need a human agent to approve."},
+ {"q": "How do I reset my password?", "a": "Use the Forgot password link on the login page. A reset email arrives within a few minutes."},
+ {"q": "Do you ship internationally?", "a": "Yes, to most countries. Delivery takes 7 to 14 business days."},
+ {"q": "How can I contact support by phone?", "a": "Phone support is available 9am to 5pm on weekdays. Chat is available 24/7."}
+]

@@ -1,0 +1,6 @@
+services:
+  agent:
+    build: .
+    ports: ["8000:8000"]
+    environment:
+      LLM_API_KEY: ${LLM_API_KEY:-}
