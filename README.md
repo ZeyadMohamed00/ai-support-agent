@@ -1,5 +1,7 @@
 # AI Customer Support Agent (LangGraph, tool calling, human approval)
 
+[![CI](https://github.com/ZeyadMohamed00/ai-support-agent/actions/workflows/ci.yml/badge.svg)](https://github.com/ZeyadMohamed00/ai-support-agent/actions/workflows/ci.yml)
+
 A support agent for an online shop: answers FAQs, looks up orders, issues refunds under business rules, asks a human to approve large refunds, and escalates. FastAPI + LangGraph + PostgreSQL + React/TypeScript.
 
 **Live demo (free tier):** https://support-web-green.vercel.app  (click a suggestion, e.g. "I want a refund for A1005", then Approve in the queue)
