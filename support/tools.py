@@ -1,6 +1,11 @@
 """Tools: the only way the agent touches data. They enforce authorization and business rules themselves."""
-import json, random, time, re
+
+import json
+import random
+import re
+import time
 from pathlib import Path
+
 from .db import Order, ToolLog
 
 FAQ = json.loads((Path(__file__).resolve().parent.parent / "data" / "faq.json").read_text())
@@ -34,12 +39,23 @@ def logged(db, client_id, conv_id, tool, args, fn, fault_rate=0.0, rng=random.ra
         if fault_rate and rng() < fault_rate:
             raise TransientError("simulated transient failure")
         return fn()
+
     try:
         result, attempts = with_retry(call)
     except TransientError as e:
         result, ok, attempts = {"error": "tool_unavailable", "detail": str(e)}, False, 3
-    db.add(ToolLog(client_id=client_id, conversation_id=conv_id, tool=tool, args=json.dumps(args), result=json.dumps(result),
-                   attempts=attempts, ok=ok and "error" not in result, latency_ms=round((time.perf_counter() - t0) * 1000, 2)))
+    db.add(
+        ToolLog(
+            client_id=client_id,
+            conversation_id=conv_id,
+            tool=tool,
+            args=json.dumps(args),
+            result=json.dumps(result),
+            attempts=attempts,
+            ok=ok and "error" not in result,
+            latency_ms=round((time.perf_counter() - t0) * 1000, 2),
+        )
+    )
     db.commit()
     return result
 
@@ -48,8 +64,15 @@ def get_order(db, client_id, customer, order_no):
     o = db.query(Order).filter_by(client_id=client_id, order_no=order_no.upper()).first()
     if not o or o.customer != customer:
         return {"error": "order_not_found"}  # identical answer for missing and not-yours
-    return {"order_no": o.order_no, "status": o.status, "total": o.total, "items": o.items, "delivered_days_ago": o.delivered_days_ago,
-            "eta_days": o.eta_days, "refunded": o.refunded}
+    return {
+        "order_no": o.order_no,
+        "status": o.status,
+        "total": o.total,
+        "items": o.items,
+        "delivered_days_ago": o.delivered_days_ago,
+        "eta_days": o.eta_days,
+        "refunded": o.refunded,
+    }
 
 
 def search_faq(query):
@@ -60,7 +83,11 @@ def search_faq(query):
         s = len(q & d) / (len(q) or 1)
         if s > score:
             best, score = f, s
-    return {"found": True, "question": best["q"], "answer": best["a"]} if best and score >= 0.34 else {"found": False}
+    return (
+        {"found": True, "question": best["q"], "answer": best["a"]}
+        if best and score >= 0.34
+        else {"found": False}
+    )
 
 
 def check_refund(db, client_id, customer, order_no):
@@ -73,13 +100,20 @@ def check_refund(db, client_id, customer, order_no):
         return {"eligible": False, "reason": "not_delivered"}
     if o["delivered_days_ago"] > REFUND_WINDOW_DAYS:
         return {"eligible": False, "reason": "outside_window"}
-    return {"eligible": True, "amount": o["total"], "needs_human": o["total"] > HUMAN_APPROVAL_OVER, "order_no": o["order_no"]}
+    return {
+        "eligible": True,
+        "amount": o["total"],
+        "needs_human": o["total"] > HUMAN_APPROVAL_OVER,
+        "order_no": o["order_no"],
+    }
 
 
 def execute_refund(db, client_id, customer, order_no):
     r = check_refund(db, client_id, customer, order_no)  # re-validate: never trust an earlier check
     if not r.get("eligible"):
         return r
-    db.query(Order).filter_by(client_id=client_id, order_no=order_no.upper()).update({"refunded": True})
+    db.query(Order).filter_by(client_id=client_id, order_no=order_no.upper()).update(
+        {"refunded": True}
+    )
     db.commit()
     return {"refunded": True, "amount": r["amount"], "order_no": r["order_no"]}

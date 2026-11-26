@@ -1,9 +1,13 @@
-import os, json
+import os
 from datetime import datetime, timezone
-from sqlalchemy import create_engine, String, Integer, Float, Text, Boolean, DateTime, ForeignKey
+
+from sqlalchemy import Boolean, DateTime, Float, ForeignKey, Integer, String, Text, create_engine
 from sqlalchemy.orm import DeclarativeBase, Mapped, mapped_column, sessionmaker
 
-engine = create_engine(os.getenv("DATABASE_URL", "postgresql+psycopg2://postgres@localhost/support"), pool_pre_ping=True)
+engine = create_engine(
+    os.getenv("DATABASE_URL", "postgresql+psycopg2://postgres@localhost/support"),
+    pool_pre_ping=True,
+)
 Session = sessionmaker(engine, expire_on_commit=False)
 now = lambda: datetime.now(timezone.utc)
 
@@ -37,7 +41,9 @@ class Conversation(Base):
 class Message(Base):
     __tablename__ = "sup_messages"
     id: Mapped[int] = mapped_column(primary_key=True)
-    conversation_id: Mapped[int] = mapped_column(ForeignKey("sup_conversations.id", ondelete="CASCADE"), index=True)
+    conversation_id: Mapped[int] = mapped_column(
+        ForeignKey("sup_conversations.id", ondelete="CASCADE"), index=True
+    )
     role: Mapped[str] = mapped_column(String(10))
     content: Mapped[str] = mapped_column(Text)
     intent: Mapped[str] = mapped_column(String(30), default="")
@@ -99,6 +105,19 @@ def init():
 def ensure_seed(db, client_id: str):
     if db.query(Order).filter_by(client_id=client_id).first():
         return
-    db.add_all([Order(client_id=client_id, order_no=o, customer=c, status=s, delivered_days_ago=d, eta_days=e, total=t, items=i)
-                for o, c, s, d, e, t, i in SEED])
+    db.add_all(
+        [
+            Order(
+                client_id=client_id,
+                order_no=o,
+                customer=c,
+                status=s,
+                delivered_days_ago=d,
+                eta_days=e,
+                total=t,
+                items=i,
+            )
+            for o, c, s, d, e, t, i in SEED
+        ]
+    )
     db.commit()

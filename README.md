@@ -9,6 +9,22 @@ API docs: https://support-api-liard.vercel.app/docs
 
 Pages: Customer chat, Orders, Approval queue (refunds over $200 need a human), Tool log and cost, Classifier accuracy, How it works, with dark mode.
 
+## System overview
+```mermaid
+flowchart TD
+  M[Customer message] --> CL{Classify intent}
+  CL -->|order status| OS[get_order]
+  CL -->|faq| FQ[search_faq]
+  CL -->|refund| CR[check_refund]
+  CL -->|other| ES[escalate]
+  CR -->|over limit| AP[request_approval: human decides]
+  CR -->|eligible| EX[execute_refund]
+  AP -->|approved| EA[execute_approved]
+  OS & FQ & EX & EA & ES --> LOG[(PostgreSQL: messages, tool logs, approvals)]
+```
+
+**Tech stack:** LangGraph, FastAPI, PostgreSQL, React, TypeScript, Pytest, Docker.
+
 ## Architecture
 ```
 classify -> order_status | faq | greeting | escalate
