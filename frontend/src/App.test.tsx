@@ -24,7 +24,7 @@ test("large refund shows in approval queue and can be approved", async () => {
   render(<App />);
   await userEvent.click(await screen.findByText("I want a refund for A1005"));
   await screen.findByText(/need a human to approve/);
-  await userEvent.click(await screen.findByText("Approve"));
+  await userEvent.click((await screen.findAllByText("Approve"))[0]);
   await waitFor(() => expect(screen.getByText(/\[team decision\] refunded \$349.00/)).toBeInTheDocument());
 });
 
