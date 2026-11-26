@@ -5,7 +5,9 @@ A support agent for an online shop: answers FAQs, looks up orders, issues refund
 **Live demo (free tier):** https://support-web-green.vercel.app  (click a suggestion, e.g. "I want a refund for A1005", then Approve in the queue)
 API docs: https://support-api-liard.vercel.app/docs
 
-![refund over $200 approved by a human](docs/screenshot-approval.png)
+![customer chat with orders and approval panel](docs/screenshot-chat.png)
+
+Pages: Customer chat, Orders, Approval queue (refunds over $200 need a human), Tool log and cost, Classifier accuracy, How it works, with dark mode.
 
 ## Architecture
 ```
