@@ -103,6 +103,8 @@ def init():
 
 
 def ensure_seed(db, client_id: str):
+    if client_id.startswith("user:"):
+        return  # real accounts start empty; only anonymous guests get demo data
     if db.query(Order).filter_by(client_id=client_id).first():
         return
     db.add_all(

@@ -6,6 +6,8 @@ from pydantic import BaseModel
 from sqlalchemy import func
 
 from . import db as D
+from .auth import identity
+from .auth import router as auth_router
 from .graph import GRAPH
 
 CUSTOMERS = {"sara@example.com", "omar@example.com"}
@@ -16,10 +18,8 @@ def get_db():
         yield s
 
 
-def client(x_client_id: str = Header(default="")):
-    if not (8 <= len(x_client_id) <= 64) or not x_client_id.replace("-", "").isalnum():
-        raise HTTPException(400, "Missing or invalid X-Client-Id header")
-    return x_client_id
+def client(authorization: str = Header(default=""), x_client_id: str = Header(default="")):
+    return identity(authorization, x_client_id)
 
 
 def customer(x_customer: str = Header(default="sara@example.com")):
@@ -41,6 +41,7 @@ class Decision(BaseModel):
 def create_app():
     D.init()
     app = FastAPI(title="AI Customer Support Agent", version="2.0.0")
+    app.include_router(auth_router)
     app.add_middleware(
         CORSMiddleware, allow_origins=["*"], allow_methods=["*"], allow_headers=["*"]
     )
