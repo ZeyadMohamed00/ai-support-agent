@@ -1,43 +1,52 @@
-# AI Customer Support Agent (tool-calling, with guardrails)
+# AI Customer Support Agent (LangGraph, tool calling, human approval)
 
-A support agent for an online shop. It answers FAQs, looks up orders, issues refunds under business rules, and escalates to a human. The interesting part is not the chat, it is **how the agent is kept safe**: it can only call a fixed set of tools, those tools enforce the rules, and every call is logged.
+A support agent for an online shop: answers FAQs, looks up orders, issues refunds under business rules, asks a human to approve large refunds, and escalates. FastAPI + LangGraph + PostgreSQL + React/TypeScript.
 
-> Honest scope
-> - The default "brain" is **rule-based** (keyword intents), so the project runs offline and is fully tested. An `LLMBrain` using OpenAI-style function calling is included, but it was **never run** (no API key available). Treat it as untested.
-> - Data is a small JSON file (4 orders, 5 FAQs), not a real database. The API takes the customer from an `X-Customer` header, which is a **demo shortcut**: in production the identity must come from authentication.
-> - Docker files were **not built or run** (Docker unavailable). Tests were run locally on Python 3.10.
+**Live demo (free tier):** https://support-web-green.vercel.app  (click a suggestion, e.g. "I want a refund for A1005", then Approve in the queue)
+API docs: https://support-api-liard.vercel.app/docs
 
-## Run
-```bash
-python -m venv .venv && source .venv/bin/activate
-pip install -r requirements.txt
-pytest -q                          # 10 tests
-uvicorn agent.api:app --reload
-curl -X POST localhost:8000/chat -H 'X-Customer: sara@example.com' \
-  -H 'Content-Type: application/json' -d '{"message":"where is order A1002"}'
-```
+![refund over $200 approved by a human](docs/screenshot-approval.png)
 
 ## Architecture
 ```
-message -> Brain.decide() -> {tool, args} -> allow-list check -> Store tool (enforces rules) -> reply
-                                                        \-> audit log (agent.log)
+classify -> order_status | faq | greeting | escalate
+         -> check_refund -> needs human?  -> request_approval -> END  (human decides via API)
+                         -> eligible?     -> execute_refund  -> END
+resume (after approval) -> execute_approved -> END
 ```
-- `agent/brain.py`: decides the tool (RuleBrain or LLMBrain, same interface).
-- `agent/tools.py`: `get_order`, `search_faq` (TF-IDF), `request_refund`, `escalate`.
-- `agent/agent.py`: orchestration, allow-list, conversation state, wording of replies.
+- `support/graph.py`: the LangGraph state machine above (conditional entry point lets an approval re-enter the graph).
+- `support/tools.py`: tools that enforce authorization and business rules, with retry + audit logging.
+- `support/classify.py`: intent classifier (rules by default; LLM classifier written but not run) and cost tracking.
+- `support/db.py`: PostgreSQL models: orders, conversations, messages, tool logs, approvals, LLM usage.
+- Each visitor gets their own private copy of the synthetic orders (keyed by a browser id), so demos never collide.
 
-## How it works / key decisions
-1. **Brain vs tools split**: the brain only *proposes* an action; the tools *decide* what is allowed. Even a confused or manipulated LLM cannot refund a 45-day-old order, because `request_refund` checks the rules itself.
-2. **Allow-list guardrail**: any tool name outside the list is replaced with an escalation (`test_guardrail_blocks_invented_tools`).
-3. **Authorization**: tools take the customer from the session, not from the message, and return the same "not found" for missing and not-yours orders, so nothing leaks (`test_cannot_read_other_customers_order`).
-4. **Business rules in code**: refund only if delivered, within 30 days, and a human must approve orders over 200 dollars (the agent opens a ticket).
-5. **Memory and fallbacks**: it remembers the last order in the conversation ("refund it"), asks for the order number when missing, and escalates when it has no answer instead of guessing.
+## What is implemented
+Tool calling (get_order, search_faq, check_refund, execute_refund, escalate), multi-step workflow, **human approval** (refund over $200 stops at `request_approval`, nothing happens until a human approves; a rejected request never refunds), **retry with exponential backoff** (3 tries, then a graceful message, all logged), conversation history in Postgres, per-call tool log with attempts and latency, LLM **cost tracking** table and endpoint, and a classification accuracy evaluation.
 
-## Limitations / next steps
-Real database and auth, multi-turn LLM planning, evaluation on real conversations, prompt-injection tests for the LLM path, rate limits.
+## Honest status
+- **No LLM is used in the deployed demo.** The classifier is rule-based. The LLM classifier (`CLASSIFIER=llm` + `OPENAI_API_KEY`) and its token/cost tracking are written but were **never run**. The usage panel shows 0 calls / $0 for that reason; the price table is an assumption to verify against the provider.
+- LangGraph is real and used (`langgraph` 1.x), but I did not use its checkpointer or `interrupt`; approval state is stored in my own `sup_approvals` table and resumes through a second graph entry. Redis is not used.
+- Replies are templates, not generated text. The customer identity comes from an `X-Customer` header: a **demo shortcut**. In production it must come from authentication.
+- Docker files are not verified (no Docker in the build environment). The live demo shares a free Neon database (tables prefixed `sup_`).
 
-## Interview questions to prepare
-Why not let the LLM call tools directly with no allow-list? Where must authorization live? How would you test an LLM-based agent deterministically? What is prompt injection and how does this design limit its impact?
+## Evaluation (real run, `python eval/run_eval.py`)
+Intent classification of 63 labeled messages (`eval/classification_set.json`, written by the project author, not independent).
+- First run: accuracy **0.937** (4 errors).
+- After I fixed two rule gaps ("refund policy" questions are FAQs, not refund requests; "has my package shipped" is order status): accuracy **0.984** (1 error: "how fast is express delivery" is predicted order_status, true label faq).
+- **The 0.984 is tuned on this same set, so it is optimistic.** Treat 0.937 as the untuned figure. Results in `eval/results.json`. The LLM classifier is not evaluated.
 
-## CI
-A GitHub Actions workflow is in `ci/github-actions-ci.yml`. Move it to `.github/workflows/ci.yml` to enable it. It is not enabled because the push token had no `workflow` scope, and it has not been run on GitHub.
+## Run
+```bash
+pip install -r requirements.txt pgserver
+DATABASE_URL=postgresql+psycopg2://user:pw@host/db uvicorn support.main:app
+cd frontend && npm i && npm run dev
+pytest          # 14 tests on an embedded real PostgreSQL; frontend: cd frontend && npm test (2 tests)
+python eval/run_eval.py
+```
+
+## 5 things to understand to explain this project
+1. **The brain proposes, the tools decide.** Business rules (30-day window, delivered only, $200 approval, not-already-refunded) live in code, so even a manipulated classifier cannot break them. `execute_refund` re-checks everything at execution time.
+2. **Graph = explicit workflow.** Each step is a node, routing is conditional edges, so behavior is inspectable and testable instead of hidden in a prompt.
+3. **Human-in-the-loop**: the graph stops at `request_approval`; approval resumes it through a different entry point; double-approving returns 409.
+4. **Reliability**: transient tool failures retry with backoff; permanent failure becomes a clear message plus a log row (`test_total_tool_outage_is_handled_and_logged`).
+5. **Authorization and honesty**: the same "not found" answer for missing and not-yours orders (no data leak); and the evaluation numbers above say exactly how they were produced.

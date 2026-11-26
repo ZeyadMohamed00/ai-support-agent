@@ -1,0 +1,254 @@
+[
+ {
+  "text": "Where is my order A1002?",
+  "label": "order_status"
+ },
+ {
+  "text": "can you track A1001 for me",
+  "label": "order_status"
+ },
+ {
+  "text": "what's the status of my order",
+  "label": "order_status"
+ },
+ {
+  "text": "has my package shipped yet",
+  "label": "order_status"
+ },
+ {
+  "text": "When will my order arrive?",
+  "label": "order_status"
+ },
+ {
+  "text": "I ordered a keyboard last week, where is it",
+  "label": "order_status"
+ },
+ {
+  "text": "order A1004 status please",
+  "label": "order_status"
+ },
+ {
+  "text": "is A1003 delivered yet",
+  "label": "order_status"
+ },
+ {
+  "text": "how far along is my delivery",
+  "label": "order_status"
+ },
+ {
+  "text": "tracking info for my purchase?",
+  "label": "order_status"
+ },
+ {
+  "text": "Where's my stuff, it's been a week",
+  "label": "order_status"
+ },
+ {
+  "text": "check order A1005",
+  "label": "order_status"
+ },
+ {
+  "text": "what is happening with my order",
+  "label": "order_status"
+ },
+ {
+  "text": "do you know when my order will get here",
+  "label": "order_status"
+ },
+ {
+  "text": "order status A1001",
+  "label": "order_status"
+ },
+ {
+  "text": "I want a refund for A1001",
+  "label": "refund"
+ },
+ {
+  "text": "please refund order A1005",
+  "label": "refund"
+ },
+ {
+  "text": "I'd like my money back",
+  "label": "refund"
+ },
+ {
+  "text": "Can I return this mouse?",
+  "label": "refund"
+ },
+ {
+  "text": "refund A1003",
+  "label": "refund"
+ },
+ {
+  "text": "I want to send it back and get my money",
+  "label": "refund"
+ },
+ {
+  "text": "reimburse me for A1004",
+  "label": "refund"
+ },
+ {
+  "text": "return my order A1001 please",
+  "label": "refund"
+ },
+ {
+  "text": "I need a refund, the item is broken",
+  "label": "refund"
+ },
+ {
+  "text": "give me my money back for the desk",
+  "label": "refund"
+ },
+ {
+  "text": "can you refund it",
+  "label": "refund"
+ },
+ {
+  "text": "I want to return it",
+  "label": "refund"
+ },
+ {
+  "text": "how do I get a refund on A1002? just do it",
+  "label": "refund"
+ },
+ {
+  "text": "refund me",
+  "label": "refund"
+ },
+ {
+  "text": "return my keyboard and refund",
+  "label": "refund"
+ },
+ {
+  "text": "How long does shipping take?",
+  "label": "faq"
+ },
+ {
+  "text": "What is your refund policy?",
+  "label": "faq"
+ },
+ {
+  "text": "How do I reset my password?",
+  "label": "faq"
+ },
+ {
+  "text": "Do you ship internationally?",
+  "label": "faq"
+ },
+ {
+  "text": "How can I contact support by phone?",
+  "label": "faq"
+ },
+ {
+  "text": "what are your support hours",
+  "label": "faq"
+ },
+ {
+  "text": "do you deliver to other countries",
+  "label": "faq"
+ },
+ {
+  "text": "I forgot my password",
+  "label": "faq"
+ },
+ {
+  "text": "How many days for standard shipping",
+  "label": "faq"
+ },
+ {
+  "text": "is chat support available at night",
+  "label": "faq"
+ },
+ {
+  "text": "how fast is express delivery",
+  "label": "faq"
+ },
+ {
+  "text": "what is the return window",
+  "label": "faq"
+ },
+ {
+  "text": "Can I phone you?",
+  "label": "faq"
+ },
+ {
+  "text": "what's your policy on returns and refunds",
+  "label": "faq"
+ },
+ {
+  "text": "shipping to Canada?",
+  "label": "faq"
+ },
+ {
+  "text": "I want to talk to a human",
+  "label": "human"
+ },
+ {
+  "text": "get me a manager",
+  "label": "human"
+ },
+ {
+  "text": "this is unacceptable, I want to complain",
+  "label": "human"
+ },
+ {
+  "text": "let me speak to a real person",
+  "label": "human"
+ },
+ {
+  "text": "I will call my lawyer",
+  "label": "human"
+ },
+ {
+  "text": "connect me to a supervisor",
+  "label": "human"
+ },
+ {
+  "text": "I need to speak to someone",
+  "label": "human"
+ },
+ {
+  "text": "escalate this to your manager",
+  "label": "human"
+ },
+ {
+  "text": "I have a complaint about your service",
+  "label": "human"
+ },
+ {
+  "text": "can a human help me",
+  "label": "human"
+ },
+ {
+  "text": "hello",
+  "label": "greeting"
+ },
+ {
+  "text": "hi there",
+  "label": "greeting"
+ },
+ {
+  "text": "hey",
+  "label": "greeting"
+ },
+ {
+  "text": "good morning",
+  "label": "greeting"
+ },
+ {
+  "text": "thanks!",
+  "label": "greeting"
+ },
+ {
+  "text": "thank you",
+  "label": "greeting"
+ },
+ {
+  "text": "hi",
+  "label": "greeting"
+ },
+ {
+  "text": "hello, anyone there?",
+  "label": "greeting"
+ }
+]
