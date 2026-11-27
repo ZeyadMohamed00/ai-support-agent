@@ -47,6 +47,8 @@ Tool calling (get_order, search_faq, check_refund, execute_refund, escalate), mu
 - **No LLM is used in the deployed demo.** The classifier is rule-based. The LLM classifier (`CLASSIFIER=llm` + `OPENAI_API_KEY`) and its token/cost tracking are written but were **never run**. The usage panel shows 0 calls / $0 for that reason; the price table is an assumption to verify against the provider.
 - LangGraph is real and used (`langgraph` 1.x), but I did not use its checkpointer or `interrupt`; approval state is stored in my own `sup_approvals` table and resumes through a second graph entry. Redis is not used.
 - Replies are templates, not generated text. The customer identity comes from an `X-Customer` header: a **demo shortcut**. In production it must come from authentication.
+- **Approvals:** in the open demo one visitor is both customer and approver. Set `APPROVER_KEY` and only a caller sending `X-Approver-Key` can decide (others get `403`; `/health` reports `approval_mode: keyed`). Asking for the same refund twice reuses the open request instead of queuing a second one.
+- **Adversarial tests** (`tests/test_agent.py`): a prompt-injection style message cannot bypass the refund rules, one customer cannot refund another's order, a duplicate request cannot refund twice, and the approver key blocks self-approval.
 - Docker files are not verified (no Docker in the build environment). The live demo shares a free Neon database (tables prefixed `sup_`).
 
 ## Evaluation (real run, `python eval/run_eval.py`)
@@ -60,11 +62,11 @@ Intent classification of 63 labeled messages (`eval/classification_set.json`, wr
 pip install -r requirements.txt pgserver
 DATABASE_URL=postgresql+psycopg2://user:pw@host/db uvicorn support.main:app
 cd frontend && npm i && npm run dev
-pytest          # 14 tests on an embedded real PostgreSQL; frontend: cd frontend && npm test (2 tests)
+pytest          # 19 tests on an embedded real PostgreSQL; frontend: cd frontend && npm test (2 tests)
 python eval/run_eval.py
 ```
 
-## 5 things to understand to explain this project
+## Key concepts
 1. **The brain proposes, the tools decide.** Business rules (30-day window, delivered only, $200 approval, not-already-refunded) live in code, so even a manipulated classifier cannot break them. `execute_refund` re-checks everything at execution time.
 2. **Graph = explicit workflow.** Each step is a node, routing is conditional edges, so behavior is inspectable and testable instead of hidden in a prompt.
 3. **Human-in-the-loop**: the graph stops at `request_approval`; approval resumes it through a different entry point; double-approving returns 409.
@@ -72,11 +74,12 @@ python eval/run_eval.py
 5. **Authorization and honesty**: the same "not found" answer for missing and not-yours orders (no data leak); and the evaluation numbers above say exactly how they were produced.
 
 ## Accounts and persistence
-- **Real accounts:** `POST /auth/register`, `POST /auth/login`, `GET /auth/me`. Passwords are salted PBKDF2-SHA256 hashes; sessions are signed JWTs (7 days) sent as `Authorization: Bearer`. Set `JWT_SECRET` in production; if it is unset, a secret is derived from `DATABASE_URL`.
+- **Real accounts:** `POST /auth/register`, `POST /auth/login`, `GET /auth/me`. Passwords are salted PBKDF2-SHA256 hashes; sessions are signed JWTs (7 days) sent as `Authorization: Bearer`. Set `JWT_SECRET` in production; if it is unset, a demo-only secret is derived from `DATABASE_URL` and a warning is logged.
 - **Persistence:** a signed-in user's data is stored in PostgreSQL under their own account key (`user:<id>`) and is only reachable with their token. New accounts start empty.
 - **Guest demo:** without logging in, "Continue as guest" uses an anonymous browser id with clearly labeled sample data. Guest ids can never collide with or impersonate an account.
 - Tests: `tests/test_auth.py` (register, login, wrong or weak password, duplicate email, bad token, isolation) and `frontend/src/auth.test.tsx`.
-- Not built: email verification, password reset, rate limiting and refresh tokens (listed as next steps).
+- Login is throttled: 5 wrong passwords per email in 5 minutes returns `429` with `Retry-After` (`LOGIN_MAX_FAILS`, `LOGIN_FAIL_WINDOW_S`). The counter lives in process memory, so on several instances or serverless functions each one counts separately; use a shared limiter for hard guarantees. With `APP_ENV=production` a missing `JWT_SECRET` stops the app at startup instead of falling back.
+- Not built: email verification, password reset and refresh tokens (listed as next steps).
 
 ## Database migrations
 

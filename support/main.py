@@ -1,3 +1,4 @@
+import hmac
 import os
 
 from fastapi import Depends, FastAPI, Header, HTTPException
@@ -62,6 +63,7 @@ def create_app():
             "classifier": "llm"
             if os.getenv("CLASSIFIER") == "llm" and os.getenv("OPENAI_API_KEY")
             else "rules",
+            "approval_mode": "keyed" if os.getenv("APPROVER_KEY") else "open-demo",
         }
 
     @app.post("/chat")
@@ -140,7 +142,18 @@ def create_app():
         ]
 
     @app.post("/approvals/{aid}/decision")
-    def decide(aid: int, body: Decision, cid: str = Depends(client), db=Depends(get_db)):
+    def decide(
+        aid: int,
+        body: Decision,
+        cid: str = Depends(client),
+        x_approver_key: str = Header(default=""),
+        db=Depends(get_db),
+    ):
+        # In the open demo the same visitor plays customer and approver. With APPROVER_KEY set, only a
+        # caller holding that key (the human reviewer) can decide.
+        key = os.getenv("APPROVER_KEY")
+        if key and not hmac.compare_digest(x_approver_key, key):
+            raise HTTPException(403, "Approver key required")
         a = db.get(D.Approval, aid)
         if not a or a.client_id != cid:
             raise HTTPException(404, "Not found")

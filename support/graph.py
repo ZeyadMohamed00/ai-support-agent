@@ -190,6 +190,17 @@ def after_check(state: State):
 def n_request_approval(state: State, config):
     db, cid, _ = _ctx(config)
     o = T.get_order(db, cid, state["customer"], state["order_no"])
+    # One open request per order: asking twice must not queue two approvals for the same refund.
+    existing = (
+        db.query(Approval)
+        .filter_by(client_id=cid, customer=state["customer"], order_no=o["order_no"], status="pending")
+        .first()
+    )
+    if existing:
+        return {
+            "pending_approval_id": existing.id,
+            "reply": f"Refund request #{existing.id} for order {o['order_no']} is already waiting for a human. I will confirm once it is decided.",
+        }
     a = Approval(
         client_id=cid,
         conversation_id=state["conversation_id"],
