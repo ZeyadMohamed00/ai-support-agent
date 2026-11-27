@@ -58,7 +58,7 @@ function Main() {
       nav={[{ id: "chat", label: "Customer chat", icon: "✎" }, { id: "orders", label: "Orders", icon: "▤", badge: orders.length }, { id: "approvals", label: "Approval queue", icon: "✓", badge: pending.length }, { id: "logs", label: "Tool log & cost", icon: "≡" }, { id: "eval", label: "Classifier accuracy", icon: "◎" }, { id: "about", label: "How it works", icon: "?" }]}
       actions={<>
         <select aria-label="Customer" value={customer} onChange={(e) => { setCustomer(e.target.value); setConv(null); setLines([]); }}><option>sara@example.com</option><option>omar@example.com</option></select>
-        <button className="btn sm" onClick={() => run(async () => { await api.reset(customer); setConv(null); setLines([]); await side(); toast("Demo data reset", "ok"); })}>Reset demo data</button>
+        <button className="btn sm" onClick={() => run(async () => { await api.reset(customer); setConv(null); setLines([]); await side(); toast("Data reset", "ok"); })}>Reset data</button>
       </>}>
       {error && <p role="alert" className="err">{error}</p>}
 
