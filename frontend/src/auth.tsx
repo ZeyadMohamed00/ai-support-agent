@@ -80,7 +80,7 @@ export function AuthGate({ title, children }: { title: string; children: ReactNo
   return (
     <div className="lp">
       <section className="lp-l">
-        <div className="brand"><span className="logo">S</span>{title}</div>
+        <div className="brand"><span className="logo"><img src="/icon.svg" alt="" /></span>{title}</div>
         <div>
           <h1>Support that <em>checks the rules.</em></h1>
           <p className="lede">A customer-support agent that reads the order, looks up the policy and asks for human approval on anything risky. Every tool call is logged.</p>
