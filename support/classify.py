@@ -1,5 +1,5 @@
 """Intent classification. Default: deterministic keyword scoring (no LLM, no cost).
-LLM classifier (written, NOT run: no API key) is selected with CLASSIFIER=llm."""
+Gemini classifier is selected with CLASSIFIER=llm and GEMINI_API_KEY; it falls back to the rules on any error."""
 
 import os
 import re
@@ -70,45 +70,58 @@ def rule_classify(message: str) -> str:
     return "faq"
 
 
-def llm_classify(message: str, on_usage=None) -> str:  # pragma: no cover - needs API key
+def llm_enabled() -> bool:
+    return os.getenv("CLASSIFIER") == "llm" and bool(os.getenv("GEMINI_API_KEY"))
+
+
+def llm_classify(message: str, on_usage=None) -> str:
+    """Gemini classifier. Any failure falls back to the rule classifier."""
     import httpx
 
-    model = os.getenv("LLM_MODEL", "gpt-4o-mini")
-    r = httpx.post(
-        "https://api.openai.com/v1/chat/completions",
-        timeout=30,
-        headers={"Authorization": f"Bearer {os.environ['OPENAI_API_KEY']}"},
-        json={
-            "model": model,
-            "temperature": 0,
-            "messages": [
-                {
-                    "role": "system",
-                    "content": "Classify the customer message into exactly one of: "
-                    + ", ".join(INTENTS)
-                    + ". Reply with the label only.",
+    model = os.getenv("LLM_MODEL", "gemini-3.1-flash-lite")
+    try:
+        r = httpx.post(
+            f"https://generativelanguage.googleapis.com/v1beta/models/{model}:generateContent",
+            timeout=15,
+            headers={"x-goog-api-key": os.environ["GEMINI_API_KEY"]},
+            json={
+                "systemInstruction": {
+                    "parts": [
+                        {
+                            "text": "You classify customer-support messages. Labels: "
+                            "order_status (asks where an order is or its status), "
+                            "refund (wants money back, return or cancel an order), "
+                            "faq (general policy question: shipping, returns, payment, warranty), "
+                            "human (wants a person, manager, or is making a complaint or legal threat), "
+                            "greeting (hello or thanks only). Reply with exactly one label."
+                        }
+                    ]
                 },
-                {"role": "user", "content": message},
-            ],
-        },
-    )
-    r.raise_for_status()
-    j = r.json()
-    if on_usage:
-        on_usage(model, j["usage"]["prompt_tokens"], j["usage"]["completion_tokens"])
-    label = j["choices"][0]["message"]["content"].strip().lower()
-    return label if label in INTENTS else "faq"
+                "contents": [{"role": "user", "parts": [{"text": message}]}],
+                "generationConfig": {"temperature": 0, "maxOutputTokens": 12},
+            },
+        )
+        r.raise_for_status()
+        j = r.json()
+        if on_usage:
+            u = j.get("usageMetadata", {})
+            on_usage(model, u.get("promptTokenCount", 0), u.get("candidatesTokenCount", 0))
+        label = j["candidates"][0]["content"]["parts"][0]["text"].strip().lower()
+        label = re.sub(r"[^a-z_]", "", label)
+        if label in INTENTS:
+            return label
+    except Exception:
+        pass
+    return rule_classify(message)
 
 
 def classify(message: str, on_usage=None) -> str:
-    if os.getenv("CLASSIFIER") == "llm" and os.getenv("OPENAI_API_KEY"):
+    if llm_enabled():
         return llm_classify(message, on_usage)
     return rule_classify(message)
 
 
-PRICES_PER_M = {
-    "gpt-4o-mini": (0.15, 0.60)
-}  # USD per 1M tokens (input, output); check provider pricing before relying on it
+PRICES_PER_M = {"gemini-3.1-flash-lite": (0.0, 0.0), "gpt-4o-mini": (0.15, 0.60)}  # free tier; USD per 1M tokens (input, output); check provider pricing before relying on it
 
 
 def cost_usd(model: str, tin: int, tout: int) -> float:

@@ -1,0 +1,49 @@
+{
+ "n": 63,
+ "accuracy": 0.952,
+ "per_intent": {
+  "order_status": {
+   "precision": 1.0,
+   "recall": 1.0,
+   "n": 15
+  },
+  "refund": {
+   "precision": 1.0,
+   "recall": 1.0,
+   "n": 15
+  },
+  "faq": {
+   "precision": 1.0,
+   "recall": 0.867,
+   "n": 15
+  },
+  "human": {
+   "precision": 0.769,
+   "recall": 1.0,
+   "n": 10
+  },
+  "greeting": {
+   "precision": 1.0,
+   "recall": 0.875,
+   "n": 8
+  }
+ },
+ "errors": [
+  {
+   "text": "How can I contact support by phone?",
+   "label": "faq",
+   "predicted": "human"
+  },
+  {
+   "text": "Can I phone you?",
+   "label": "faq",
+   "predicted": "human"
+  },
+  {
+   "text": "hello, anyone there?",
+   "label": "greeting",
+   "predicted": "human"
+  }
+ ],
+ "classifier": "gemini"
+}

@@ -61,9 +61,9 @@ def create_app():
         return {
             "status": "ok",
             "classifier": "llm"
-            if os.getenv("CLASSIFIER") == "llm" and os.getenv("OPENAI_API_KEY")
+            if os.getenv("CLASSIFIER") == "llm" and os.getenv("GEMINI_API_KEY")
             else "rules",
-            "approval_mode": "keyed" if os.getenv("APPROVER_KEY") else "open-demo",
+            "approval_mode": "keyed" if os.getenv("APPROVER_KEY") else "open",
         }
 
     @app.post("/chat")
@@ -215,7 +215,7 @@ def create_app():
             "tokens_in": int(tin),
             "tokens_out": int(tout),
             "cost_usd": round(float(cost), 6),
-            "note": "0 calls means the rule-based classifier handled everything (no LLM key configured)"
+            "note": "0 calls means the rule-based classifier handled everything (no LLM configured)"
             if n == 0
             else "",
         }

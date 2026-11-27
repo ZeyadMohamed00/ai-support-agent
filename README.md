@@ -44,10 +44,10 @@ resume (after approval) -> execute_approved -> END
 Tool calling (get_order, search_faq, check_refund, execute_refund, escalate), multi-step workflow, **human approval** (refund over $200 stops at `request_approval`, nothing happens until a human approves; a rejected request never refunds), **retry with exponential backoff** (3 tries, then a graceful message, all logged), conversation history in Postgres, per-call tool log with attempts and latency, LLM **cost tracking** table and endpoint, and a classification accuracy evaluation.
 
 ## Honest status
-- **No LLM is used in the deployed demo.** The classifier is rule-based. The LLM classifier (`CLASSIFIER=llm` + `OPENAI_API_KEY`) and its token/cost tracking are written but were **never run**. The usage panel shows 0 calls / $0 for that reason; the price table is an assumption to verify against the provider.
+- **The live app classifies with Gemini** (`gemini-3.1-flash-lite`, free tier, `CLASSIFIER=llm` + `GEMINI_API_KEY`). If the call fails or times out, the rule-based classifier answers instead. The refund rules (30-day window, delivered orders only, human approval over $200) are plain code; the model only picks the intent and never decides a refund. Token usage is logged; free tier costs $0.
 - LangGraph is real and used (`langgraph` 1.x), but I did not use its checkpointer or `interrupt`; approval state is stored in my own `sup_approvals` table and resumes through a second graph entry. Redis is not used.
-- Replies are templates, not generated text. The customer identity comes from an `X-Customer` header: a **demo shortcut**. In production it must come from authentication.
-- **Approvals:** in the open demo one visitor is both customer and approver. Set `APPROVER_KEY` and only a caller sending `X-Approver-Key` can decide (others get `403`; `/health` reports `approval_mode: keyed`). Asking for the same refund twice reuses the open request instead of queuing a second one.
+- Replies are still templates, not generated text. The customer identity comes from an `X-Customer` header: a shortcut for this portfolio app. In production it must come from authentication.
+- **Approvals:** in the open setup one visitor is both customer and approver. Set `APPROVER_KEY` and only a caller sending `X-Approver-Key` can decide (others get `403`; `/health` reports `approval_mode: keyed`). Asking for the same refund twice reuses the open request instead of queuing a second one.
 - **Adversarial tests** (`tests/test_agent.py`): a prompt-injection style message cannot bypass the refund rules, one customer cannot refund another's order, a duplicate request cannot refund twice, and the approver key blocks self-approval.
 - Docker files are not verified (no Docker in the build environment). The live demo shares a free Neon database (tables prefixed `sup_`).
 
@@ -55,7 +55,7 @@ Tool calling (get_order, search_faq, check_refund, execute_refund, escalate), mu
 Intent classification of 63 labeled messages (`eval/classification_set.json`, written by the project author, not independent).
 - First run: accuracy **0.937** (4 errors).
 - After I fixed two rule gaps ("refund policy" questions are FAQs, not refund requests; "has my package shipped" is order status): accuracy **0.984** (1 error: "how fast is express delivery" is predicted order_status, true label faq).
-- **The 0.984 is tuned on this same set, so it is optimistic.** Treat 0.937 as the untuned figure. Results in `eval/results.json`. The LLM classifier is not evaluated.
+- **The 0.984 is tuned on this same set, so it is optimistic.** Treat 0.937 as the untuned figure. Results in `eval/results.json`. 
 
 ## Run
 ```bash
@@ -84,3 +84,7 @@ python eval/run_eval.py
 ## Database migrations
 
 Schema changes are versioned with Alembic (`migrations/`, baseline `0001`). Point `DATABASE_URL` at the database and run `alembic upgrade head`. The baseline was generated from the models and checked by running upgrade, downgrade and upgrade again on SQLite; I did not run it against a fresh PostgreSQL instance here. The running app still creates missing tables on start.
+
+## Gemini vs rules on the same 63 messages
+- Rules: 0.984 (tuned on this set, optimistic). Gemini (`gemini-3.1-flash-lite`, zero tuning): **0.952** (3 errors: two phone-contact FAQs sent to "human", and "hello, anyone there?" read as human). Results in `eval/results_gemini.json`.
+- So on this author-written set the rules win. Gemini is used because it generalises to wording the rules never saw; that is not shown by this set, which the rules were tuned on. An independent test set is the next step.
